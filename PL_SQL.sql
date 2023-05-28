@@ -126,3 +126,26 @@ BEGIN
 END;
 /
 
+
+---output customer id and name
+
+set serveroutput on
+declare 
+cursor customer_cursor is select * from customers;
+CR customers%rowtype;
+
+
+begin
+open customer_cursor;
+                                                       ---fetch customer_cursor into CR.customers_id,CR.customers_name,CR.faculty,CR.no_of_student;
+fetch customer_cursor into CR;
+while customer_cursor%found loop
+dbms_output.put_line('customers_id: '||CR.customer_id|| ' customers_name: '||CR.name );
+dbms_output.put_line('Row count: '|| customer_cursor%rowcount);
+
+                                                       ---fetch customer_cursor into CR.customers_id,CR.customers_name,CR.faculty,CR.no_of_student;
+fetch customer_cursor into CR;
+end loop;
+close customer_cursor;
+end;
+/
