@@ -27,7 +27,7 @@ END;
 /
 
 
-
+     prompt *=*=*=*=*=*=*=*= Chaecking *=*=*=*=*=*=*=*=*=*=*=*=
 
 --- PL/SQL block to retrieve customer details and the total number of orders placed:
 set serveroutput on
@@ -149,4 +149,106 @@ fetch customer_cursor into CR;
 end loop;
 close customer_cursor;
 end;
+/
+
+
+
+drop table test;
+CREATE table test(
+customer_id NUMBER(10) PRIMARY KEY,
+name VARCHAR(100) NOT NULL,
+quantity NUMBER(10) NOT NULL);
+
+
+--- PL/SQL block to retrieve customer details and the total number of orders placed:
+set serveroutput on
+DECLARE
+  v_customer_id customers.customer_id%TYPE;
+  v_customer_name customers.name%TYPE;
+  v_order_count NUMBER;
+BEGIN
+  FOR rec IN (select customer_id, name from customers)
+  LOOP
+    v_customer_id := rec.customer_id;
+    v_customer_name := rec.name;
+    
+    select COUNT(*) INTO v_order_count
+    from orders
+    WHERE customer_id = v_customer_id;
+
+    insert into test VALUES(v_customer_id,v_customer_name,v_order_count);
+
+    DBMS_OUTPUT.PUT_LINE('Customer Name: ' || v_customer_name);
+    DBMS_OUTPUT.PUT_LINE('Total Orders: ' || v_order_count);
+    DBMS_OUTPUT.PUT_LINE('-------------------------');
+    
+  END LOOP;
+END;
+/
+
+
+select name,quantity from 
+( select 
+     customer_id,name,quantity,ROW_NUMBER() OVER(ORDER BY quantity DESC) AS rrow
+     from test) 
+WHERE rrow>=0
+And rrow<=3;
+
+
+
+
+
+
+---procedure that retrieves the total revenue for each customer :
+
+set serveroutput on
+CREATE OR REPLACE PROCEDURE calculate_total_revenue IS
+BEGIN
+  FOR rec IN (SELECT c.customer_id, c.name
+              FROM customers c
+              JOIN orders o ON c.customer_id = o.customer_id
+              JOIN products p ON o.product_id = p.product_id)
+  LOOP
+    DECLARE
+      v_customer_id customers.customer_id%TYPE := rec.customer_id;
+      v_customer_name customers.name%TYPE := rec.name;
+      v_total_revenue NUMBER(10, 2);
+    BEGIN
+      SELECT SUM(o.quantity * p.price) INTO v_total_revenue
+      FROM orders o
+      JOIN products p ON o.product_id = p.product_id
+      WHERE o.customer_id = v_customer_id;
+      
+      DBMS_OUTPUT.PUT_LINE('Customer ID: ' || v_customer_id);
+      DBMS_OUTPUT.PUT_LINE('Customer Name: ' || v_customer_name);
+      DBMS_OUTPUT.PUT_LINE('Total Revenue: $' || v_total_revenue);
+      DBMS_OUTPUT.PUT_LINE('-------------------------');
+    END;
+  END LOOP;
+END;
+/
+
+
+
+
+---automatically update the total revenue
+CREATE OR REPLACE TRIGGER update_total_revenue
+AFTER INSERT OR UPDATE ON orders
+FOR EACH ROW
+DECLARE
+  v_customer_id customers.customer_id%TYPE;
+BEGIN
+
+    v_customer_id := :NEW.customer_id;
+
+
+  UPDATE orders o
+  SET total_revenue = (
+    SELECT (o.quantity * p.price)
+    FROM orders o
+    JOIN products p ON o.product_id = p.product_id
+    WHERE o.customer_id = v_customer_id
+  )
+  WHERE o.customer_id = v_customer_id;
+END;
 /

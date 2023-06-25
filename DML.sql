@@ -58,6 +58,8 @@ select * from payments
 WHERE amount>50;
 
 
+alter table orders add total_revenue NUMBER(10,2);
+
 ---Updating the data in a table
 update payments set amount=100 where amount=99.99;
 
@@ -223,6 +225,7 @@ WHERE o.order_date = (
 
 
 ---creating Myview
+drop view Myview11;
 
 CREATE VIEW Myview11 AS
 select c.customer_id,c.name AS customer_name,c.email,c.phone,c.address,c.date_of_birth,

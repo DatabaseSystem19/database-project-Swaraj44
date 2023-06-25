@@ -44,6 +44,8 @@ CREATE TABLE payments (
 ---Add column in the table
 alter table payments add Payment_type char(20);
 
+
+
 ---Modify column definition in the table
 alter table payments modify Payment_type varchar(10);
 
